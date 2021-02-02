@@ -59,14 +59,14 @@ uint8_t inputCode[] = {
 
 uint8_t bracketOpenCode[] {
 	0x80, 0x3e, 0x00, // cmp byte ptr [rsi], 0
-	0x74, // je
-	0 // jmp offset goes here
+	0x0f, 0x84, // je long
+	0, 0, 0, 0 // jmp offset goes here
 };
 
 uint8_t bracketCloseCode[] {
 	0x80, 0x3e, 0x00, // cmp byte ptr [rsi], 0
-	0x75, // jne
-	0 // jmp offset goes here
+	0x0f, 0x85, // jne long
+	0, 0, 0, 0 // jmp offset goes here
 };
 
 void writeInit(std::vector<uint8_t>& out, uint64_t dataStart) {
@@ -121,21 +121,21 @@ void writeInput(std::vector<uint8_t>& out) {
 	}
 }
 
-void writeBracketOpen(std::vector<uint8_t>& out, int offset) {
-	if(offset > 127) {
-		throw std::runtime_error("long jump unimplemented.");
+void writeBracketOpen(std::vector<uint8_t>& out, int32_t offset) {
+	for(int i = 0; i < sizeof(offset); ++i) {
+		bracketOpenCode[5 + i] = (uint8_t)offset;
+		offset >>= 8;
 	}
-	bracketOpenCode[4] = (uint8_t)(offset & 0xff);
 	for(uint8_t b : bracketOpenCode) {
 		out.push_back(b);
 	}
 }
 
 void writeBracketClose(std::vector<uint8_t>& out, int offset) {
-	if(offset < -128) {
-		throw std::runtime_error("short jump unimplemented.");
+	for(int i = 0; i < sizeof(offset); ++i) {
+		bracketCloseCode[5 + i] = (uint8_t)offset;
+		offset >>= 8;
 	}
-	bracketCloseCode[4] = (uint8_t)(offset & 0xff);
 	for(uint8_t b : bracketCloseCode) {
 		out.push_back(b);
 	}
